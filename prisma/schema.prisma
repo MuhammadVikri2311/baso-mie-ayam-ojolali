@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  KASIR
+  PELANGGAN
+}
+
+enum OrderStatus {
+  MENUNGGU
+  DIPROSES
+  SIAP
+  SELESAI
+  DIBATALKAN
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum PaymentMethod {
+  CASH
+  QRIS
+  TRANSFER
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(PELANGGAN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+}
+
+model Product {
+  id          String      @id @default(uuid())
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id])
+  name        String
+  description String?
+  price       Float
+  image       String?
+  isAvailable Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id            String        @id @default(uuid())
+  orderNumber   String        @unique
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  totalAmount   Float
+  paymentStatus PaymentStatus @default(PENDING)
+  orderStatus   OrderStatus   @default(MENUNGGU)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  items         OrderItem[]
+  payment       Payment?
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+  subtotal  Float
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  orderId       String        @unique
+  order         Order         @relation(fields: [orderId], references: [id])
+  paymentMethod PaymentMethod
+  amount        Float
+  paymentStatus PaymentStatus @default(PENDING)
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+}
