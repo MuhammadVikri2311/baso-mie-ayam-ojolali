@@ -1,36 +1,133 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Baso & Mie Ayam Ojolali
 
-## Getting Started
+Aplikasi web untuk membantu UMKM mengelola pemesanan makanan dan operasional toko. Sistem menyediakan portal Admin, Kasir, dan Pelanggan, serta chatbot AI yang menyesuaikan informasi dengan hak akses pengguna.
 
-First, run the development server:
+## Fitur
+
+### Pelanggan
+- Registrasi dan login.
+- Melihat katalog makanan dan minuman.
+- Mengelola keranjang belanja.
+- Checkout pesanan.
+- Melihat informasi pesanan.
+
+### Kasir
+- Dashboard kasir.
+- Melihat pesanan masuk.
+- Mencatat pembayaran **CASH**.
+- Mengubah status pesanan dari **MENUNGGU** menjadi **SELESAI**.
+- Melihat riwayat transaksi.
+
+### Admin
+- Dashboard admin.
+- Mengelola produk dan kategori.
+- Melihat data pelanggan.
+- Memantau pesanan.
+- Melihat laporan penjualan.
+- Mengelola konfigurasi sistem.
+
+### Fitur pendukung
+- Chatbot AI dengan pembatasan akses berdasarkan role.
+- Notifikasi pesanan melalui email dan suara sesuai konfigurasi.
+- Unit testing menggunakan Vitest.
+- CI menggunakan GitHub Actions.
+
+> Catatan: metode pembayaran aktif pada website adalah CASH. QRIS dan transfer bank tidak termasuk alur pembayaran aktif. Status operasional yang digunakan pada website adalah MENUNGGU dan SELESAI.
+
+## Teknologi
+- Next.js
+- React
+- TypeScript
+- Prisma ORM
+- PostgreSQL (Neon)
+- NextAuth
+- Vitest
+- GitHub Actions
+
+## Persyaratan
+- Node.js versi 20 atau versi yang kompatibel dengan proyek.
+- npm.
+- Database PostgreSQL.
+- Environment variable yang diperlukan aplikasi.
+
+## Instalasi
+
+1. Clone repository:
+
+   ```bash
+   git clone https://github.com/MuhammadVikri2311/baso-mie-ayam-ojolali.git
+   cd baso-mie-ayam-ojolali
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm ci --legacy-peer-deps
+   ```
+
+3. Buat file `.env.local` berdasarkan kebutuhan konfigurasi proyek. Isi connection string database, secret autentikasi, dan kredensial layanan eksternal secara lokal. **Jangan commit file `.env.local` atau membagikan API key.**
+
+4. Generate Prisma Client:
+
+   ```bash
+   npx prisma generate
+   ```
+
+5. Jalankan aplikasi dalam mode pengembangan:
+
+   ```bash
+   npm run dev
+   ```
+
+6. Buka `http://localhost:3000` pada browser.
+
+> Jika proyek memerlukan migrasi database, periksa skema dan prosedur migrasi terlebih dahulu. Jangan menjalankan reset database pada database yang berisi data penting.
+
+## Pengujian
+
+Jalankan unit test:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run test:run
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Jalankan pemeriksaan TypeScript:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npx tsc --noEmit
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Jalankan ESLint:
 
-## Learn More
+```bash
+npm run lint
+```
 
-To learn more about Next.js, take a look at the following resources:
+Build production:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run build
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## CI/CD
 
-## Deploy on Vercel
+Workflow berada pada `.github/workflows/ci.yml`. Workflow berjalan pada push ke branch `main` dan pull request menuju `main`, lalu menjalankan instalasi dependensi, Prisma generate, lint, type check, unit test, dan build.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Repository: https://github.com/MuhammadVikri2311/baso-mie-ayam-ojolali
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+GitHub Actions: https://github.com/MuhammadVikri2311/baso-mie-ayam-ojolali/actions
+
+Salah satu run yang dilaporkan berhasil: https://github.com/MuhammadVikri2311/baso-mie-ayam-ojolali/actions/runs/44315630301
+
+## Dokumentasi dan Demo
+
+- Laporan akhir PRD/SRS + SDD: `Laporan_Akhir_Baso_Mie_Ayam_Ojolali.pdf`
+- Video demo aplikasi: [Tambahkan tautan video setelah diunggah]
+- Video progres 1: [Tambahkan tautan jika diwajibkan]
+- Video progres 2: [Tambahkan tautan jika diwajibkan]
+
+## Catatan Keamanan
+
+- Jangan menyimpan `.env`, `.env.local`, password, database URL produksi, atau API key di repository.
+- Gunakan environment variable pada mesin lokal dan secret manager pada layanan deployment.
+- Jangan menampilkan data pribadi pelanggan pada video demo publik.
