@@ -1,27 +1,28 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { adminAuthOptions, kasirAuthOptions, customerAuthOptions } from '@/lib/auth'
+import { resolveAuthenticatedUserSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { askAI, ChatHistoryItem } from '@/app/ai/actions'
 
 export async function POST(req: Request) {
   try {
-    // 1. Verifikasi Autentikasi Pengguna di Server melalui NextAuth session cookies
-    const [adminSession, kasirSession, customerSession] = await Promise.all([
-      getServerSession(adminAuthOptions).catch(() => null),
-      getServerSession(kasirAuthOptions).catch(() => null),
-      getServerSession(customerAuthOptions).catch(() => null),
-    ])
+    // 1. Parse Request Body terlebih dahulu agar konteks portal/path tersedia untuk resolusi sesi
+    let body: Record<string, unknown>
+    try {
+      body = await req.json()
+    } catch {
+      return NextResponse.json(
+        { error: 'Format JSON pada request tidak valid.' },
+        { status: 400 }
+      )
+    }
 
-    // Tentukan sesi aktif berdasarkan token autentikasi server
-    const activeSession =
-      adminSession?.user?.role === 'ADMIN'
-        ? adminSession
-        : kasirSession?.user?.role === 'KASIR' || kasirSession?.user?.role === 'ADMIN'
-        ? kasirSession
-        : customerSession?.user?.role === 'PELANGGAN'
-        ? customerSession
-        : null
+    const { prompt, portal, history, currentPath } = body || {}
+    const portalParam = typeof portal === 'string' ? portal : undefined
+    const pathParam = typeof currentPath === 'string' ? currentPath : undefined
+
+    // 2. Verifikasi Autentikasi Pengguna di Server melalui NextAuth session cookies
+    // Gunakan resolusi sesi terisolasi per portal untuk mencegah kebocoran sesi antar role
+    const activeSession = await resolveAuthenticatedUserSession(portalParam, pathParam)
 
     // Tolak permintaan jika pengguna belum login atau sesi tidak valid (HTTP 401)
     if (!activeSession?.user?.id) {
@@ -47,18 +48,20 @@ export async function POST(req: Request) {
     // Role pengguna murni berasal dari database hasil verifikasi sesi server
     const verifiedRole = dbUser.role as 'ADMIN' | 'KASIR' | 'PELANGGAN'
 
-    // 2. Parse Request Body
-    let body: Record<string, unknown>
-    try {
-      body = await req.json()
-    } catch {
+    const p = (portalParam || '').toLowerCase().trim()
+    const path = (pathParam || '').toLowerCase().trim()
+    if ((p === 'admin' || path.startsWith('/admin')) && verifiedRole !== 'ADMIN') {
       return NextResponse.json(
-        { error: 'Format JSON pada request tidak valid.' },
-        { status: 400 }
+        { error: 'Akses ditolak: Akun Anda tidak memiliki hak akses Administrator.' },
+        { status: 403 }
       )
     }
-
-    const { prompt, portal, history, currentPath } = body || {}
+    if ((p === 'kasir' || path.startsWith('/kasir')) && verifiedRole !== 'KASIR' && verifiedRole !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Akses ditolak: Akun Anda tidak memiliki hak akses Kasir.' },
+        { status: 403 }
+      )
+    }
 
     // 3. Validasi input prompt
     if (typeof prompt !== 'string') {

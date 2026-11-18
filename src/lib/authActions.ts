@@ -86,16 +86,22 @@ export async function loginAction(data: {
     let redirectTo = '/'
 
     if (user.role === 'ADMIN') {
-      // Set cookie khusus Admin
+      // Set cookie khusus Admin & bersihkan cookie role lain agar sesi tidak bocor/tertukar
       cookieStore.set('ojolali-admin.session-token', encodedToken, cookieOptions)
+      cookieStore.delete('ojolali-kasir.session-token')
+      cookieStore.delete('ojolali-pelanggan.session-token')
       redirectTo = '/admin'
     } else if (user.role === 'KASIR') {
-      // Set cookie khusus Kasir
+      // Set cookie khusus Kasir & bersihkan cookie role lain
       cookieStore.set('ojolali-kasir.session-token', encodedToken, cookieOptions)
+      cookieStore.delete('ojolali-admin.session-token')
+      cookieStore.delete('ojolali-pelanggan.session-token')
       redirectTo = '/kasir'
     } else {
-      // Set cookie khusus Pelanggan
+      // Set cookie khusus Pelanggan & bersihkan cookie role staf
       cookieStore.set('ojolali-pelanggan.session-token', encodedToken, cookieOptions)
+      cookieStore.delete('ojolali-admin.session-token')
+      cookieStore.delete('ojolali-kasir.session-token')
       const isValidCallback =
         callbackUrl &&
         callbackUrl !== '/login' &&

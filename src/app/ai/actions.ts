@@ -1,8 +1,7 @@
 'use server'
 
 import { db } from '@/lib/db'
-import { getServerSession } from 'next-auth'
-import { adminAuthOptions, kasirAuthOptions, customerAuthOptions } from '@/lib/auth'
+import { resolveAuthenticatedUserSession } from '@/lib/auth'
 import { resolveAiContextData, getOperationalSummary } from '@/lib/aiDataService'
 
 export type UserRoleType = 'ADMIN' | 'KASIR' | 'PELANGGAN' | 'GUEST'
@@ -64,90 +63,86 @@ export async function askAI(
 
     // 3. Verifikasi Autentikasi Pengguna di Server Melalui NextAuth & Database
     // JANGAN mempercayai role atau session yang berasal dari input pengguna / parameter client.
-    // Hapus mekanisme injectedSession dan identitas tester dari produksi.
+    // Dapatkan sesi terisolasi per portal untuk mencegah kebocoran sesi antar role.
+    const activeSession = await resolveAuthenticatedUserSession(portalOrMode, currentPath)
+
+    if (!activeSession?.user?.id) {
+      return {
+        error: 'Akses ditolak: Sesi autentikasi tidak valid atau belum login. Silakan masuk terlebih dahulu.',
+      }
+    }
+
     let verifiedUser: { id: string; name: string | null; role: string } | null = null
 
     try {
-      const [adminSession, kasirSession, customerSession] = await Promise.all([
-        getServerSession(adminAuthOptions).catch(() => null),
-        getServerSession(kasirAuthOptions).catch(() => null),
-        getServerSession(customerAuthOptions).catch(() => null),
-      ])
-
-      const activeSession =
-        adminSession?.user?.role === 'ADMIN'
-          ? adminSession
-          : kasirSession?.user?.role === 'KASIR' || kasirSession?.user?.role === 'ADMIN'
-          ? kasirSession
-          : customerSession?.user?.role === 'PELANGGAN'
-          ? customerSession
-          : null
-
-      if (activeSession?.user?.id) {
-        const dbUser = await db.user.findUnique({
-          where: { id: activeSession.user.id },
-          select: { id: true, name: true, role: true },
-        })
-        if (dbUser) {
-          verifiedUser = dbUser
-        }
+      const dbUser = await db.user.findUnique({
+        where: { id: activeSession.user.id },
+        select: { id: true, name: true, role: true },
+      })
+      if (dbUser) {
+        verifiedUser = dbUser
       }
     } catch (sessionErr) {
       console.error('[askAI] Gagal memverifikasi sesi server:', sessionErr)
       verifiedUser = null
     }
 
-    let sessionRole: UserRoleType = 'GUEST'
-    let userName = 'Pengguna'
-
-    if (verifiedUser) {
-      const dbRole = String(verifiedUser.role || '').toUpperCase()
-      if (dbRole === 'ADMIN') {
-        sessionRole = 'ADMIN'
-      } else if (dbRole === 'KASIR') {
-        sessionRole = 'KASIR'
-      } else if (dbRole === 'PELANGGAN') {
-        sessionRole = 'PELANGGAN'
+    if (!verifiedUser) {
+      return {
+        error: 'Akses ditolak: Pengguna tidak terdaftar dalam sistem.',
       }
-      userName = verifiedUser.name || 'Pengguna'
     }
 
-    // Role terverifikasi MURNI dari database dan sesi autentikasi server:
-    const verifiedRole: UserRoleType = sessionRole
+    const dbRole = String(verifiedUser.role || '').toUpperCase()
+    if (dbRole !== 'ADMIN' && dbRole !== 'KASIR' && dbRole !== 'PELANGGAN') {
+      return {
+        error: 'Akses ditolak: Role pengguna tidak valid.',
+      }
+    }
+
+    const p = (portalOrMode || '').toLowerCase().trim()
+    const path = (currentPath || '').toLowerCase().trim()
+    if ((p === 'admin' || path.startsWith('/admin')) && dbRole !== 'ADMIN') {
+      return {
+        error: 'Akses ditolak: Akun Anda tidak memiliki hak akses Administrator.',
+      }
+    }
+    if ((p === 'kasir' || path.startsWith('/kasir')) && dbRole !== 'KASIR' && dbRole !== 'ADMIN') {
+      return {
+        error: 'Akses ditolak: Akun Anda tidak memiliki hak akses Kasir.',
+      }
+    }
+
+    // Role pengguna murni berasal dari database hasil verifikasi sesi server
+    const verifiedRole: UserRoleType = dbRole as UserRoleType
+    const userName = verifiedUser.name || (verifiedRole === 'ADMIN' ? 'Admin' : verifiedRole === 'KASIR' ? 'Kasir' : 'Pelanggan')
 
     // 4. Server-Side Guardrail Pertahanan Role, Identitas & Bantuan Sesuai Role
     // Guardrail Identitas Diri Pengguna ("siapa saya", "role saya apa", "saya siapa", dsb.)
     const userSelfIdentityPattern =
-      /^(halo\s*[,!]?\s*|hai\s*[,!]?\s*)?(siapa\s+(saya|aku|diriku)|(saya|aku|diriku)\s+siapa|(siapakah|siapa)\s+(saya|aku)|(saya|aku)\s+ini\s+siapa|(saya|aku)\s+sebenarnya\s+siapa|siapa\s+(saya|aku)\s+sebenarnya|(role|peran|status|posisi)\s+(saya|aku)(\s+apa)?|(apa\s+(role|peran|status|posisi)\s+(saya|aku))|(saya|aku)\s+login\s+sebagai\s+apa|akun\s+(saya|aku)\s+apa|apakah\s+(saya|aku)\s+(admin|kasir|pelanggan))(\s+(sih|ya|dong))?[\?\.\!\s]*$/i
+      /\b(siapa\s+(saya|aku|diriku)|(saya|aku|diriku)\s+siapa|(siapakah|siapa)\s+(saya|aku)|(saya|aku)\s+(ini|itu)?\s*siapa|(role|peran|status|posisi)\s+(saya|aku)|(saya|aku)\s+login\s+sebagai\s+apa|akun\s+(saya|aku)\s+apa|apakah\s+(saya|aku)\s+(admin|kasir|pelanggan))\b/i
 
     if (userSelfIdentityPattern.test(cleanPrompt)) {
       if (verifiedRole === 'ADMIN') {
         return {
           message:
-            `Anda adalah **Administrator (Admin)** di UMKM Baso & Mie Ayam Ojolali${userName !== 'Pengguna' ? ` (${userName})` : ''}. Anda memiliki wewenang penuh dalam mengelola menu, kategori, pesanan, data pelanggan, laporan keuangan, dan memantau performa bisnis toko Ojolali.`,
+            `Anda adalah **Administrator (Admin)** di UMKM Baso & Mie Ayam Ojolali${userName !== 'Admin' && userName !== 'Pengguna' ? ` (${userName})` : ''}. Anda memiliki wewenang penuh dalam mengelola menu, kategori, pesanan, data pelanggan, laporan keuangan, dan memantau performa bisnis toko Ojolali.`,
           products: [],
           role: 'ADMIN',
         }
       } else if (verifiedRole === 'KASIR') {
         return {
           message:
-            `Anda adalah **Petugas Kasir** di UMKM Baso & Mie Ayam Ojolali${userName !== 'Pengguna' ? ` (${userName})` : ''}. Anda bertugas memantau antrean pesanan masuk, mengelola transaksi kasir, mengonfirmasi pembayaran pelanggan, menyelesaikan pesanan, dan memantau riwayat seluruh transaksi selesai.`,
+            `Anda adalah **Petugas Kasir** di UMKM Baso & Mie Ayam Ojolali${userName !== 'Kasir' && userName !== 'Pengguna' ? ` (${userName})` : ''}. Anda bertugas memantau antrean pesanan masuk, mengelola transaksi kasir, mengonfirmasi pembayaran pelanggan, menyelesaikan pesanan, dan memantau riwayat seluruh transaksi selesai.`,
           products: [],
           role: 'KASIR',
         }
       } else if (verifiedRole === 'PELANGGAN') {
         return {
           message:
-            `Anda adalah **Pelanggan** setia UMKM Baso & Mie Ayam Ojolali${userName !== 'Pengguna' ? ` (${userName})` : ''}. Saya siap membantu Anda memilih menu baso dan mie ayam favorit, cek harga, rekomendasi makanan lezat, panduan cara memesan, serta mengecek status pesanan Anda.`,
+            `Anda adalah **Pelanggan** setia UMKM Baso & Mie Ayam Ojolali${userName !== 'Pelanggan' && userName !== 'Pengguna' ? ` (${userName})` : ''}. Saya siap membantu Anda memilih menu baso dan mie ayam favorit, cek harga, rekomendasi makanan lezat, panduan cara memesan, serta mengecek status pesanan Anda.`,
           products: [],
           role: 'PELANGGAN',
-        }
-      } else {
-        return {
-          message:
-            'Saat ini Anda belum login (berstatus sebagai **Pengunjung / Tamu**). Silakan masuk ke akun Pelanggan untuk memesan makanan, atau masuk ke portal Kasir/Admin jika Anda merupakan staf resmi UMKM Baso & Mie Ayam Ojolali.',
-          products: [],
-          role: 'GUEST',
         }
       }
     }
@@ -504,6 +499,15 @@ PERATURAN IDENTITAS MUTLAK:
 Peran pengguna saat ini telah diverifikasi oleh sistem autentikasi server sebagai: ${verifiedRole}
 ${roleSecurityInstructions}
 
+=== INSTRUKSI IDENTITAS PENGGUNA (WAJIB & MUTLAK) ===
+- Peran pengguna saat ini telah diverifikasi secara murni oleh autentikasi server sebagai: ${verifiedRole} (${userName}).
+- JIKA PENGGUNA BERTANYA TENTANG IDENTITASNYA (misal: "siapa saya", "saya siapa", "role saya apa", "status saya apa", "saya login sebagai apa"):
+  * Pengguna ADMIN: Sebut dan tegaskan bahwa pengguna adalah Administrator (Admin) UMKM Baso & Mie Ayam Ojolali.
+  * Pengguna KASIR: Sebut dan tegaskan bahwa pengguna adalah Kasir / Petugas Kasir UMKM Baso & Mie Ayam Ojolali.
+  * Pengguna PELANGGAN: Sebut dan tegaskan bahwa pengguna adalah Pelanggan setia UMKM Baso & Mie Ayam Ojolali.
+- DILARANG KERAS MENYEBUT PENGGUNA SEBAGAI ADMIN JIKA PERANNYA ADALAH KASIR ATAU PELANGGAN!
+- DILARANG KERAS TERTUKAR PERAN ANTAR PENGGUNA ATAU MENEBAK ROLE SECARA SEMBARANGAN!
+
 === INFORMASI RESMI USAHA ===
 ${generalBusinessInfo}
 
@@ -574,6 +578,7 @@ Berikan respons HANYA dalam format JSON valid dengan skema persis berikut:
     }
 
     // Susun pesan percakapan dengan riwayat chat (Multi-turn conversation)
+    // Cegah konteks role lama dari akun sebelumnya terbawa ke sesi role saat ini
     const conversationMessages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
       { role: 'system', content: systemPrompt },
     ]
@@ -582,10 +587,26 @@ Berikan respons HANYA dalam format JSON valid dengan skema persis berikut:
       const recentHistory = history.slice(-6)
       for (const h of recentHistory) {
         if (h && typeof h.content === 'string') {
+          const content = h.content.trim()
+          if (!content) continue
+
+          // Jika role pengguna adalah PELANGGAN, jangan teruskan riwayat asisten staf (Admin/Kasir)
+          if (verifiedRole === 'PELANGGAN') {
+            const hasStaffContext = /administrator|\badmin\b|\bkasir\b|omzet|omset|antrean\s+pesanan|riwayat\s+transaksi/i.test(content)
+            if (h.role === 'ai' && hasStaffContext) {
+              continue
+            }
+          } else if (verifiedRole === 'KASIR') {
+            const hasAdminContext = /administrator|\badmin\b|laporan\s+keuangan|kelola\s+menu|master\s+pelanggan/i.test(content)
+            if (h.role === 'ai' && hasAdminContext) {
+              continue
+            }
+          }
+
           if (h.role === 'user') {
-            conversationMessages.push({ role: 'user', content: h.content.trim() })
+            conversationMessages.push({ role: 'user', content })
           } else if (h.role === 'ai') {
-            conversationMessages.push({ role: 'assistant', content: h.content.trim() })
+            conversationMessages.push({ role: 'assistant', content })
           }
         }
       }

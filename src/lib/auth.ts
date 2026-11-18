@@ -184,3 +184,85 @@ export async function getSessionForPortal(portalContext?: 'admin' | 'kasir' | 'p
 export async function getAnySession(portalContext?: 'admin' | 'kasir' | 'pelanggan' | string | null) {
   return await getSessionForPortal(portalContext)
 }
+
+/**
+ * Resolusi Sesi Server Terisolasi & Anti-Spoofing:
+ * Mengambil sesi autentikasi server yang sesuai konteks portal/path tanpa fallback asumsi ke ADMIN.
+ * Mencegah cookie sesi Admin membajak portal Kasir atau Pelanggan.
+ */
+export async function resolveAuthenticatedUserSession(
+  portalContext?: string | null,
+  currentPath?: string | null
+) {
+  let normalizedPortal: 'admin' | 'kasir' | 'pelanggan' | undefined = undefined
+  const p = (portalContext || '').toLowerCase().trim()
+  const path = (currentPath || '').toLowerCase().trim()
+
+  if (p === 'admin' || path.startsWith('/admin')) {
+    normalizedPortal = 'admin'
+  } else if (p === 'kasir' || path.startsWith('/kasir')) {
+    normalizedPortal = 'kasir'
+  } else if (
+    p === 'pelanggan' ||
+    path === '/' ||
+    path.startsWith('/menu') ||
+    path.startsWith('/pesanan') ||
+    path.startsWith('/profil') ||
+    path.startsWith('/checkout') ||
+    path.startsWith('/keranjang') ||
+    path.startsWith('/riwayat')
+  ) {
+    normalizedPortal = 'pelanggan'
+  }
+
+  // 1. Jika konteks portal adalah Admin (/admin)
+  if (normalizedPortal === 'admin') {
+    const admin = await getServerSession(adminAuthOptions).catch(() => null)
+    if (admin?.user?.id) return admin
+    return null
+  }
+
+  // 2. Jika konteks portal adalah Kasir (/kasir)
+  if (normalizedPortal === 'kasir') {
+    const kasir = await getServerSession(kasirAuthOptions).catch(() => null)
+    if (kasir?.user?.id) return kasir
+    const admin = await getServerSession(adminAuthOptions).catch(() => null)
+    if (admin?.user?.id) return admin
+    return null
+  }
+
+  // 3. Jika konteks portal adalah Pelanggan (halaman publik/menu/checkout)
+  if (normalizedPortal === 'pelanggan') {
+    const pelanggan = await getServerSession(customerAuthOptions).catch(() => null)
+    if (pelanggan?.user?.id) return pelanggan
+    const kasir = await getServerSession(kasirAuthOptions).catch(() => null)
+    if (kasir?.user?.id) return kasir
+    const admin = await getServerSession(adminAuthOptions).catch(() => null)
+    if (admin?.user?.id) return admin
+    return null
+  }
+
+  // 4. Jika tidak ada konteks portal/path eksplisit (misal API request generic tanpa portal):
+  // Verifikasi berurutan dengan prioritas Pelanggan -> Kasir -> Admin (JANGAN utamakan Admin!)
+  const customerSession = await getServerSession(customerAuthOptions).catch(() => null)
+  if (customerSession?.user?.id) {
+    return customerSession
+  }
+
+  const kasirSession = await getServerSession(kasirAuthOptions).catch(() => null)
+  if (kasirSession?.user?.id) {
+    return kasirSession
+  }
+
+  const adminSession = await getServerSession(adminAuthOptions).catch(() => null)
+  if (adminSession?.user?.id) {
+    return adminSession
+  }
+
+  // Jika tetap ada sesi pelanggan meskipun role bukan PELANGGAN
+  if (customerSession?.user?.id) return customerSession
+  if (kasirSession?.user?.id) return kasirSession
+  if (adminSession?.user?.id) return adminSession
+
+  return null
+}
