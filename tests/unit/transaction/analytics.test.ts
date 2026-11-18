@@ -141,8 +141,7 @@ describe('Unit Test: Pengolahan & Agregasi Data Transaksi Penjualan', () => {
             categoryName: 'Bakso',
             quantity: 2,
             subtotal: 36000, // Total omzet kategori Bakso lebih tinggi
-            totalAmount: 36000,
-          } as any,
+          },
           {
             productId: 'p3',
             productName: 'Kerupuk',

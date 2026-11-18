@@ -93,7 +93,7 @@ describe('Unit Test: Hardening Keamanan API Chatbot AI (/api/ai)', () => {
         id: 'user-pelanggan-1',
         name: 'Pelanggan Setia',
         role: 'PELANGGAN',
-      } as any)
+      } as unknown as Awaited<ReturnType<typeof db.user.findUnique>>)
 
       const req = new Request('http://localhost:3000/api/ai', {
         method: 'POST',
@@ -119,7 +119,7 @@ describe('Unit Test: Hardening Keamanan API Chatbot AI (/api/ai)', () => {
         id: 'user-pelanggan-1',
         name: 'Pelanggan Setia',
         role: 'PELANGGAN',
-      } as any)
+      } as unknown as Awaited<ReturnType<typeof db.user.findUnique>>)
 
       const longPrompt = 'a'.repeat(501)
       const req = new Request('http://localhost:3000/api/ai', {
@@ -146,7 +146,7 @@ describe('Unit Test: Hardening Keamanan API Chatbot AI (/api/ai)', () => {
         id: 'user-pelanggan-1',
         name: 'Pelanggan Setia',
         role: 'PELANGGAN',
-      } as any)
+      } as unknown as Awaited<ReturnType<typeof db.user.findUnique>>)
 
       const req = new Request('http://localhost:3000/api/ai', {
         method: 'POST',
@@ -178,7 +178,7 @@ describe('Unit Test: Hardening Keamanan API Chatbot AI (/api/ai)', () => {
       vi.mocked(db.user.findMany).mockResolvedValue([
         { id: '1', name: 'User 1', email: 'u1@mail.com', createdAt: new Date() },
         { id: '2', name: 'User 2', email: 'u2@mail.com', createdAt: new Date() },
-      ] as any)
+      ] as unknown as Awaited<ReturnType<typeof db.user.findMany>>)
 
       const adminResult = await resolveAiContextData('Berapa total pelanggan terdaftar?', 'ADMIN')
       expect(adminResult.intent).toBe('TOTAL_CUSTOMERS_COUNT')

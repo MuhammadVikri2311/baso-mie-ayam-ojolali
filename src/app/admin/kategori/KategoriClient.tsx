@@ -13,8 +13,7 @@ import {
   AlertCircle, 
   Loader2,
   Calendar,
-  Sparkles,
-  ArrowUpDown
+  Sparkles
 } from 'lucide-react'
 import { createCategory, updateCategory, deleteCategory } from './actions'
 

@@ -109,7 +109,7 @@ export async function loginAction(data: {
       role: user.role,
       redirectTo,
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error during loginAction:', err)
     return {
       success: false,

@@ -4,7 +4,33 @@ import { useState } from 'react'
 import { ProductCard } from '@/components/ProductCard'
 import { Search } from 'lucide-react'
 
-export function MenuClient({ products, categories }: { products: any[], categories: any[] }) {
+export interface MenuProductItem {
+  id: string
+  name: string
+  price: number
+  image: string | null
+  description?: string | null
+  isAvailable: boolean
+  categoryId: string
+  category: {
+    id?: string
+    name: string
+  }
+}
+
+export interface MenuCategoryItem {
+  id: string
+  name: string
+  description?: string | null
+}
+
+export function MenuClient({
+  products,
+  categories,
+}: {
+  products: MenuProductItem[]
+  categories: MenuCategoryItem[]
+}) {
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL')
 

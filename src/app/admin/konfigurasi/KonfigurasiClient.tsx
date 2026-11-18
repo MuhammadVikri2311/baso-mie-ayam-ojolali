@@ -19,14 +19,11 @@ import {
   MapPin,
   Phone,
   Radio,
-  Sliders,
   Sparkles,
   Server,
   Lock,
   Cpu,
-  Layers,
-  HelpCircle,
-  Power
+  Layers
 } from 'lucide-react'
 import {
   SystemConfigData,

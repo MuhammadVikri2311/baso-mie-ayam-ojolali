@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, X, ArrowRight, User, ShoppingBag } from 'lucide-react'
+import { Bell, X, ArrowRight, User } from 'lucide-react'
 import { useOrderNotificationStore } from '@/lib/orderNotificationStore'
 
 interface ToastProps {

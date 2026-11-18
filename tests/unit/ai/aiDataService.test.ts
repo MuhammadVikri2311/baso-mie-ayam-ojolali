@@ -82,8 +82,8 @@ describe('Unit Test: AI Data Service & Natural Language Date Query Parser', () =
         .mockResolvedValueOnce(30) // totalPesananSemua
 
       vi.mocked(db.order.aggregate)
-        .mockResolvedValueOnce({ _sum: { totalAmount: 450000 } } as any) // totalOmzetRiwayatAgg
-        .mockResolvedValueOnce({ _sum: { totalAmount: 90000 } } as any)  // omzetHariIniAgg
+        .mockResolvedValueOnce({ _sum: { totalAmount: 450000 } } as unknown as Awaited<ReturnType<typeof db.order.aggregate>>) // totalOmzetRiwayatAgg
+        .mockResolvedValueOnce({ _sum: { totalAmount: 90000 } } as unknown as Awaited<ReturnType<typeof db.order.aggregate>>)  // omzetHariIniAgg
 
       vi.mocked(db.user.count).mockResolvedValueOnce(6) // totalPelangganUser
       vi.mocked(db.product.count).mockResolvedValueOnce(30) // totalMenuProduk

@@ -9,7 +9,6 @@ import {
   Mail, 
   X,
   UserCheck,
-  TrendingUp,
   Award
 } from 'lucide-react'
 
@@ -42,7 +41,6 @@ export default function PelangganAdminClient({ initialCustomers }: Props) {
   // Statistics
   const totalCustomers = initialCustomers.length
   const activeCustomers = initialCustomers.filter((c) => c._count.orders > 0).length
-  const totalOrders = initialCustomers.reduce((acc, c) => acc + c._count.orders, 0)
   const topCustomer = [...initialCustomers].sort((a, b) => b._count.orders - a._count.orders)[0]
 
   return (

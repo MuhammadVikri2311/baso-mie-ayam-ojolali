@@ -21,7 +21,7 @@ export async function updateProfile(formData: FormData) {
     })
     
     return { success: true }
-  } catch (e) {
+  } catch {
     return { error: 'Gagal memperbarui profil' }
   }
 }

@@ -26,7 +26,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         user: true,
       },
     })
-  } catch (error) {
+  } catch {
     // If id is not a valid UUID or other DB error occurs, gracefully handle as not found
     order = null;
   }

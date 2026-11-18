@@ -6,7 +6,7 @@ const prisma = new PrismaClient()
 async function main() {
   // Create Admin
   const hashedPassword = await bcrypt.hash('admin123', 10)
-  const admin = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: 'admin@ojolali.com' },
     update: {},
     create: {
@@ -112,7 +112,7 @@ async function main() {
       try {
         await prisma.product.delete({ where: { id: p.id }});
         console.log(`Deleted deprecated product: ${p.name}`);
-      } catch (e) {
+      } catch {
         console.log(`Could not delete ${p.name} as it might be referenced in orders. Marking as unavailable.`);
         await prisma.product.update({ where: { id: p.id }, data: { isAvailable: false } });
       }

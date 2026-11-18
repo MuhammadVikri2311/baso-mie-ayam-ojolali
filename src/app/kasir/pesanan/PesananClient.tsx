@@ -12,7 +12,6 @@ import {
   Banknote, 
   QrCode, 
   CreditCard,
-  UtensilsCrossed,
   Check,
   AlertCircle,
   Phone,

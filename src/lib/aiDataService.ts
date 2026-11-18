@@ -908,7 +908,7 @@ export async function getTopSellingMenuData(role: UserRoleType, limit = 5): Prom
 /**
  * 6B. Daftar Menu Tersedia & Harga
  */
-export async function getAvailableMenuData(role: UserRoleType): Promise<ServiceResult<{ categories: { name: string; items: { name: string; price: number }[] }[] }>> {
+export async function getAvailableMenuData(): Promise<ServiceResult<{ categories: { name: string; items: { name: string; price: number }[] }[] }>> {
   return withRetry(async () => {
     try {
       const categories = await db.category.findMany({
@@ -1542,7 +1542,7 @@ ${listStr}`,
     /\b(daftar\s+menu|list\s+menu|harga\s+menu|menu\s+apa\s+saja|ada\s+menu\s+apa|menu\s+tersedia|pilihan\s+menu|daftar\s+harga)\b/i
 
   if (menuListPattern.test(clean) && !clean.includes('laris') && !clean.includes('populer')) {
-    const res = await getAvailableMenuData(role)
+    const res = await getAvailableMenuData()
     const cats = res.data?.categories || []
     const formattedCats = cats
       .map((c) => `• Kategori ${c.name}:\n` + c.items.map((it) => `  - ${it.name}: Rp${it.price.toLocaleString('id-ID')}`).join('\n'))

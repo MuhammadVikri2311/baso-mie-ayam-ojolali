@@ -6,10 +6,8 @@ import {
   ShoppingBag, 
   Package, 
   TrendingUp, 
-  Award, 
   Layers,
-  UtensilsCrossed,
-  ArrowUpRight
+  UtensilsCrossed
 } from 'lucide-react'
 
 export const metadata: Metadata = {

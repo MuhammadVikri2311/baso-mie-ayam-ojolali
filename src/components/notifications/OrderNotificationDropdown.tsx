@@ -15,6 +15,18 @@ interface DropdownProps {
   role: 'admin' | 'kasir'
 }
 
+function formatOrderTime(isoString: string): string {
+  try {
+    const date = new Date(isoString)
+    const diffMinutes = Math.floor((Date.now() - date.getTime()) / 60000)
+    if (diffMinutes < 1) return 'Baru saja'
+    if (diffMinutes < 60) return `${diffMinutes} mnt lalu`
+    return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+  } catch {
+    return ''
+  }
+}
+
 export default function OrderNotificationDropdown({
   isOpen,
   onClose,
@@ -45,18 +57,6 @@ export default function OrderNotificationDropdown({
   if (!isOpen) return null
 
   const unreadCount = unreadOrderIds.length
-
-  const formatTime = (isoString: string) => {
-    try {
-      const date = new Date(isoString)
-      const diffMinutes = Math.floor((Date.now() - date.getTime()) / 60000)
-      if (diffMinutes < 1) return 'Baru saja'
-      if (diffMinutes < 60) return `${diffMinutes} mnt lalu`
-      return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-    } catch {
-      return ''
-    }
-  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -144,7 +144,7 @@ export default function OrderNotificationDropdown({
                     </span>
                     <span className="text-[10px] text-stone-400 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {formatTime(order.createdAt)}
+                      {formatOrderTime(order.createdAt)}
                     </span>
                   </div>
 

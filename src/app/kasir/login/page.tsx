@@ -1,11 +1,13 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { useState, useEffect, Suspense } from 'react'
 import { LayoutDashboard, Loader2 } from 'lucide-react'
 import { loginAction } from '@/lib/authActions'
 
 function KasirLoginForm() {
+  const router = useRouter()
   const { data: session, status } = useSession()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -13,12 +15,12 @@ function KasirLoginForm() {
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
       if (session.user.role === 'ADMIN') {
-        window.location.href = '/admin'
+        router.push('/admin')
       } else if (session.user.role === 'KASIR') {
-        window.location.href = '/kasir'
+        router.push('/kasir')
       }
     }
-  }, [status, session])
+  }, [status, session, router])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()

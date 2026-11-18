@@ -1,7 +1,6 @@
 'use server'
 
 import { db } from '@/lib/db'
-import { hash } from 'bcrypt'
 import { revalidatePath } from 'next/cache'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'

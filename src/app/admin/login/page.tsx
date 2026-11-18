@@ -1,20 +1,22 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { useState, useEffect, Suspense } from 'react'
 import { ShieldCheck, Loader2 } from 'lucide-react'
 import { loginAction } from '@/lib/authActions'
 
 function AdminLoginForm() {
+  const router = useRouter()
   const { data: session, status } = useSession()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.role === 'ADMIN') {
-      window.location.href = '/admin'
+      router.push('/admin')
     }
-  }, [status, session])
+  }, [status, session, router])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()

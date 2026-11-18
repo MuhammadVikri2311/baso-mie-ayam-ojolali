@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { Bell, Volume2, VolumeX, Radio, AlertCircle } from 'lucide-react'
 import { useOrderNotification } from './useOrderNotification'
 import OrderNotificationDropdown from './OrderNotificationDropdown'
@@ -10,13 +10,11 @@ interface BarProps {
   role: 'admin' | 'kasir'
 }
 
-export default function OrderNotificationBar({ role }: BarProps) {
-  const [mounted, setMounted] = useState(false)
-  const [dropdownOpen, setDropdownOpen] = useState(false)
+const emptySubscribe = () => () => {}
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+export default function OrderNotificationBar({ role }: BarProps) {
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
 
   const {
     soundEnabled,

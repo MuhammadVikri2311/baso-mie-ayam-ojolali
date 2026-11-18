@@ -6,15 +6,11 @@ import { confirmPayment } from '@/app/kasir/pesanan/actions'
 import { 
   ShoppingBag, 
   Search, 
-  Filter, 
   Eye, 
   X, 
   Clock, 
   CheckCircle2, 
-  AlertCircle, 
   Calendar,
-  CreditCard,
-  User,
   DollarSign
 } from 'lucide-react'
 import { ConfirmModal } from '@/components/ConfirmModal'

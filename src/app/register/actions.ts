@@ -47,7 +47,7 @@ export async function registerUser(formData: FormData) {
     })
 
     return { success: true }
-  } catch (error) {
+  } catch {
     return { error: 'Terjadi kesalahan pada server.' }
   }
 }

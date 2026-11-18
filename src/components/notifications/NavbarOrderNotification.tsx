@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { Bell, Volume2, VolumeX } from 'lucide-react'
 import { useOrderNotification } from './useOrderNotification'
 import OrderNotificationDropdown from './OrderNotificationDropdown'
@@ -9,13 +9,11 @@ interface NavbarProps {
   role: 'admin' | 'kasir'
 }
 
-export default function NavbarOrderNotification({ role }: NavbarProps) {
-  const [mounted, setMounted] = useState(false)
-  const [dropdownOpen, setDropdownOpen] = useState(false)
+const emptySubscribe = () => () => {}
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+export default function NavbarOrderNotification({ role }: NavbarProps) {
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
 
   const {
     soundEnabled,

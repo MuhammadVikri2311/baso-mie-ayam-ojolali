@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { askAI, UserRoleType } from '@/app/ai/actions'
 import { ProductCard } from '@/components/ProductCard'
 import { Send, Bot, Sparkles, User, X, RotateCcw } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { type Components } from 'react-markdown'
 
 interface AIProduct {
   id: string
@@ -47,71 +47,71 @@ function sanitizeAIMessage(content: string): string {
 }
 
 // Komponen kustom untuk rendering Markdown yang elegan, rapi, dan konsisten
-const markdownComponents = {
-  h1: ({ children }: any) => (
+const markdownComponents: Components = {
+  h1: ({ children }) => (
     <h3 className="text-[15px] sm:text-base font-bold text-stone-900 mt-3 mb-1.5 flex items-center gap-2 tracking-tight">
       <span className="w-1.5 h-4 bg-orange-500 rounded-full inline-block flex-shrink-0" />
       <span>{children}</span>
     </h3>
   ),
-  h2: ({ children }: any) => (
+  h2: ({ children }) => (
     <h4 className="text-[14px] sm:text-[14.5px] font-bold text-stone-900 mt-2.5 mb-1.5 flex items-center gap-2 tracking-tight">
       <span className="w-1.5 h-3.5 bg-orange-500 rounded-full inline-block flex-shrink-0" />
       <span>{children}</span>
     </h4>
   ),
-  h3: ({ children }: any) => (
+  h3: ({ children }) => (
     <h5 className="text-[13.5px] sm:text-[14px] font-bold text-stone-900 mt-2.5 mb-1 flex items-center gap-1.5 tracking-tight">
       <span className="w-1.5 h-3 bg-orange-500 rounded-full inline-block flex-shrink-0" />
       <span>{children}</span>
     </h5>
   ),
-  h4: ({ children }: any) => (
+  h4: ({ children }) => (
     <h6 className="text-xs font-bold text-stone-800 uppercase tracking-wider mt-2 mb-1">
       {children}
     </h6>
   ),
-  p: ({ children }: any) => (
+  p: ({ children }) => (
     <p className="text-[13.5px] sm:text-sm text-stone-700 leading-[1.68] my-2 first:mt-0 last:mb-0 break-words font-normal">
       {children}
     </p>
   ),
-  ul: ({ children }: any) => (
+  ul: ({ children }) => (
     <ul className="my-2 space-y-1.5 pl-4 list-disc marker:text-orange-500 text-[13.5px] sm:text-sm text-stone-700 leading-[1.68]">
       {children}
     </ul>
   ),
-  ol: ({ children }: any) => (
+  ol: ({ children }) => (
     <ol className="my-2 space-y-2 pl-4 list-decimal marker:text-orange-600 marker:font-bold text-[13.5px] sm:text-sm text-stone-700 leading-[1.68]">
       {children}
     </ol>
   ),
-  li: ({ children, ...props }: any) => (
+  li: ({ children, ...props }) => (
     <li className="text-[13.5px] sm:text-sm text-stone-700 leading-[1.68] pl-0.5 break-words" {...props}>
       {children}
     </li>
   ),
-  strong: ({ children }: any) => (
+  strong: ({ children }) => (
     <strong className="font-semibold text-stone-900">
       {children}
     </strong>
   ),
-  em: ({ children }: any) => (
+  em: ({ children }) => (
     <em className="italic text-stone-600">
       {children}
     </em>
   ),
-  code: ({ children }: any) => (
+  code: ({ children }) => (
     <code className="px-1.5 py-0.5 rounded-md bg-orange-50 text-orange-800 font-mono text-[12px] border border-orange-200/60 inline-block my-0.5">
       {children}
     </code>
   ),
-  blockquote: ({ children }: any) => (
+  blockquote: ({ children }) => (
     <blockquote className="border-l-2 border-orange-500 pl-3 py-1.5 my-2.5 text-stone-600 bg-orange-50/50 rounded-r-lg text-[13px] italic">
       {children}
     </blockquote>
   ),
-  a: ({ href, children }: any) => (
+  a: ({ href, children }) => (
     <a
       href={href}
       target="_blank"
@@ -155,7 +155,6 @@ export default function FloatingAI() {
 
   const isModeAdmin = activeRoleMode === 'ADMIN'
   const isModeKasir = activeRoleMode === 'KASIR'
-  const isModePelanggan = activeRoleMode === 'PELANGGAN' || activeRoleMode === 'GUEST'
 
   // Pesan sambutan awal sesuai role aktif
   const initialGreeting = isModeKasir
@@ -179,21 +178,21 @@ export default function FloatingAI() {
   const sessionIdentityKey = `${portalContext}_${session?.user?.id || 'guest'}_${session?.user?.role || 'guest'}`
   const lastIdentityKeyRef = useRef<string>(sessionIdentityKey)
 
-  const handleResetChat = () => {
+  const handleResetChat = useCallback(() => {
     const greeting = isModeKasir
       ? 'Halo Kasir! Saya adalah asisten AI kasir Ojolali. Ada yang perlu dicek terkait antrean pesanan, omzet operasional, atau riwayat transaksi kasir?'
       : isModeAdmin
       ? 'Halo Administrator! Saya adalah asisten AI admin Ojolali. Ada yang perlu dianalisis terkait pengelolaan menu, data pesanan, laporan, atau statistik performa toko?'
       : 'Halo! Saya adalah asisten AI resmi Baso & Mie Ayam Ojolali. Ada yang bisa saya bantu terkait pilihan menu, harga, jam operasional, atau rekomendasi hidangan lezat hari ini?'
     setMessages([{ role: 'ai', content: greeting }])
-  }
+  }, [isModeKasir, isModeAdmin])
 
   useEffect(() => {
     if (lastIdentityKeyRef.current !== sessionIdentityKey) {
       lastIdentityKeyRef.current = sessionIdentityKey
       handleResetChat()
     }
-  }, [sessionIdentityKey, isModeKasir, isModeAdmin])
+  }, [sessionIdentityKey, handleResetChat])
 
   // Tombol pertanyaan cepat adaptif sesuai role aktif
   const quickQuestions = isModeKasir
