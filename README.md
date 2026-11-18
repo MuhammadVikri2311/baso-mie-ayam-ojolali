@@ -122,9 +122,7 @@ Salah satu run yang dilaporkan berhasil: https://github.com/MuhammadVikri2311/ba
 ## Dokumentasi dan Demo
 
 - Laporan akhir PRD/SRS + SDD: `Laporan_Akhir_Baso_Mie_Ayam_Ojolali.pdf`
-- Video demo aplikasi: [Tambahkan tautan video setelah diunggah]
-- Video progres 1: [Tambahkan tautan jika diwajibkan]
-- Video progres 2: [Tambahkan tautan jika diwajibkan]
+- Video demo aplikasi: [[Tambahkan tautan video setelah diunggah]](https://drive.google.com/file/d/1G2xlqlThiLB9oFEFDpecUzeA-vxCaqQ2/view?usp=drive_link)
 
 ## Catatan Keamanan
 
