@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import bcrypt from 'bcrypt'
 import { z } from 'zod'
 
-const registerSchema = z.object({
+export const registerSchema = z.object({
   name: z.string().min(1, 'Nama wajib diisi'),
   email: z.string().email('Email tidak valid'),
   password: z.string().min(8, 'Password minimal 8 karakter'),
@@ -24,10 +24,11 @@ export async function registerUser(formData: FormData) {
   }
 
   const { name, email, password } = validated.data
+  const normalizedEmail = email.trim().toLowerCase()
 
   try {
     const existingUser = await db.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     })
 
     if (existingUser) {
@@ -39,7 +40,7 @@ export async function registerUser(formData: FormData) {
     await db.user.create({
       data: {
         name,
-        email,
+        email: normalizedEmail,
         password: hashedPassword,
         role: 'PELANGGAN',
       },

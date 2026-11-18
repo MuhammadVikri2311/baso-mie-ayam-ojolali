@@ -7,6 +7,110 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(PELANGGAN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+}
+
+model Product {
+  id          String      @id @default(uuid())
+  categoryId  String
+  name        String
+  description String?
+  price       Float
+  image       String?
+  isAvailable Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  orderItems  OrderItem[]
+  category    Category    @relation(fields: [categoryId], references: [id])
+}
+
+model Order {
+  id                       String        @id @default(uuid())
+  orderNumber              String        @unique
+  userId                   String?
+  totalAmount              Float
+  paymentStatus            PaymentStatus @default(PENDING)
+  orderStatus              OrderStatus   @default(MENUNGGU)
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+  customerName             String?
+  customerPhone            String?
+  waAdminNotifiedAt        DateTime?
+  waCustomerNotifiedAt     DateTime?
+  customerEmail            String?
+  emailCompletedNotifiedAt DateTime?
+  emailOrderNotifiedAt     DateTime?
+  user                     User?         @relation(fields: [userId], references: [id])
+  items                    OrderItem[]
+  payment                  Payment?
+}
+
+model OrderItem {
+  id         String  @id @default(uuid())
+  orderId    String
+  productId  String
+  quantity   Int
+  price      Float
+  subtotal   Float
+  noodleType String?
+  notes      String?
+  spiceLevel String?
+  order      Order   @relation(fields: [orderId], references: [id])
+  product    Product @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  orderId       String        @unique
+  paymentMethod PaymentMethod
+  amount        Float
+  paymentStatus PaymentStatus @default(PENDING)
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  order         Order         @relation(fields: [orderId], references: [id])
+}
+
+model SystemConfig {
+  id                          String   @id @default("default")
+  storeName                   String   @default("Baso & Mie Ayam Ojolali")
+  storeDescription            String?  @default("Kuliner baso sapi asli dan mie ayam lezat khas Cirebon pilihan keluarga.")
+  storePhone                  String   @default("081316520717")
+  storeEmail                  String?  @default("vikrim714@gmail.com")
+  storeAddress                String   @default("Jl. Gn. Galunggung Permai, Perumnas, No. 25 RT. 07 RW. 16, Kota Cirebon, Jawa Barat")
+  openingHours                String   @default("Setiap Hari: 10.00 - 21.00 WIB")
+  isOpen                      Boolean  @default(true)
+  notificationEnabled         Boolean  @default(true)
+  soundEnabled                Boolean  @default(true)
+  soundVolume                 Int      @default(80)
+  emailOrderNotification      Boolean  @default(true)
+  emailPaymentNotification    Boolean  @default(true)
+  emailCompletionNotification Boolean  @default(true)
+  aiEnabled                   Boolean  @default(true)
+  aiRoleAdminEnabled          Boolean  @default(true)
+  aiRoleKasirEnabled          Boolean  @default(true)
+  aiRoleCustomerEnabled       Boolean  @default(true)
+  adminOnlyConfig             Boolean  @default(true)
+  updatedAt                   DateTime @updatedAt
+  updatedBy                   String?  @default("Administrator")
+}
+
 enum Role {
   ADMIN
   KASIR
@@ -31,74 +135,4 @@ enum PaymentMethod {
   CASH
   QRIS
   TRANSFER
-}
-
-model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role     @default(PELANGGAN)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  orders    Order[]
-}
-
-model Category {
-  id          String    @id @default(uuid())
-  name        String
-  description String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  products    Product[]
-}
-
-model Product {
-  id          String      @id @default(uuid())
-  categoryId  String
-  category    Category    @relation(fields: [categoryId], references: [id])
-  name        String
-  description String?
-  price       Float
-  image       String?
-  isAvailable Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  orderItems  OrderItem[]
-}
-
-model Order {
-  id            String        @id @default(uuid())
-  orderNumber   String        @unique
-  userId        String
-  user          User          @relation(fields: [userId], references: [id])
-  totalAmount   Float
-  paymentStatus PaymentStatus @default(PENDING)
-  orderStatus   OrderStatus   @default(MENUNGGU)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  items         OrderItem[]
-  payment       Payment?
-}
-
-model OrderItem {
-  id        String  @id @default(uuid())
-  orderId   String
-  order     Order   @relation(fields: [orderId], references: [id])
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-  quantity  Int
-  price     Float
-  subtotal  Float
-}
-
-model Payment {
-  id            String        @id @default(uuid())
-  orderId       String        @unique
-  order         Order         @relation(fields: [orderId], references: [id])
-  paymentMethod PaymentMethod
-  amount        Float
-  paymentStatus PaymentStatus @default(PENDING)
-  paidAt        DateTime?
-  createdAt     DateTime      @default(now())
 }

@@ -1,19 +1,14 @@
 'use client'
 
-import { useCartStore } from '@/lib/store'
+import { getCartLineKey, useCartHydrated, useCartStore } from '@/lib/store'
 import Link from 'next/link'
 import { Trash2, Plus, Minus, ArrowRight } from 'lucide-react'
-import { useEffect, useState } from 'react'
 
 export default function KeranjangPage() {
   const { items, updateQuantity, removeItem, getTotal } = useCartStore()
-  const [mounted, setMounted] = useState(false)
+  const hydrated = useCartHydrated()
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) return null
+  if (!hydrated) return null
 
   if (items.length === 0) {
     return (
@@ -36,8 +31,10 @@ export default function KeranjangPage() {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-4">
-          {items.map((item) => (
-            <div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
+          {items.map((item) => {
+            const lineKey = getCartLineKey(item)
+            return (
+            <div key={lineKey} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-4">
               <div className="w-24 h-24 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
                 {item.image ? (
                   <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
@@ -47,8 +44,17 @@ export default function KeranjangPage() {
               </div>
               <div className="flex flex-col justify-between flex-grow">
                 <div className="flex justify-between items-start">
-                  <h3 className="font-bold text-gray-900">{item.name}</h3>
-                  <button onClick={() => removeItem(item.id)} className="text-red-500 hover:text-red-700 p-1">
+                  <div>
+                    <h3 className="font-bold text-gray-900">{item.name}</h3>
+                    {(item.noodleType || item.spiceLevel || item.notes) && (
+                      <div className="mt-1 text-xs text-gray-500 space-y-0.5">
+                        {item.noodleType && <p>Mie: {item.noodleType}</p>}
+                        {item.spiceLevel && <p>Pedas: {item.spiceLevel}</p>}
+                        {item.notes && <p>Catatan: {item.notes}</p>}
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={() => removeItem(lineKey)} className="text-red-500 hover:text-red-700 p-1">
                     <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
@@ -56,14 +62,14 @@ export default function KeranjangPage() {
                   <span className="font-bold text-orange-600">Rp{item.price.toLocaleString('id-ID')}</span>
                   <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-1 border border-gray-200">
                     <button 
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                      onClick={() => updateQuantity(lineKey, item.quantity - 1)}
                       className="p-1 hover:bg-gray-200 rounded text-gray-600"
                     >
                       <Minus className="w-4 h-4" />
                     </button>
                     <span className="font-medium text-sm w-4 text-center">{item.quantity}</span>
                     <button 
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      onClick={() => updateQuantity(lineKey, item.quantity + 1)}
                       className="p-1 hover:bg-gray-200 rounded text-gray-600"
                     >
                       <Plus className="w-4 h-4" />
@@ -72,7 +78,8 @@ export default function KeranjangPage() {
                 </div>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
 
         <div className="md:col-span-1">

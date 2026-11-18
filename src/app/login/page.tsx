@@ -1,18 +1,26 @@
 'use client'
 
-import { signIn } from 'next-auth/react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useState, Suspense } from 'react'
+import { useSession } from 'next-auth/react'
+import { useSearchParams } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { Utensils, Loader2 } from 'lucide-react'
+import { loginAction } from '@/lib/authActions'
 
 function LoginForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/'
+  const isRegistered = searchParams.get('registered') === 'true'
+  const { data: session, status } = useSession()
   
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.role === 'PELANGGAN') {
+      window.location.href = callbackUrl || '/'
+    }
+  }, [status, session, callbackUrl])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -23,23 +31,23 @@ function LoginForm() {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
 
-    const res = await signIn('credentials', {
-      redirect: false,
+    const res = await loginAction({
       email,
       password,
+      callbackUrl,
     })
 
-    if (res?.error) {
-      setError('Email atau password salah')
+    if (!res.success) {
+      setError(res.error || 'Email atau password salah.')
       setLoading(false)
     } else {
-      router.push(callbackUrl)
-      router.refresh()
+      window.location.href = res.redirectTo || '/'
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
         <input 
@@ -61,6 +69,12 @@ function LoginForm() {
         />
       </div>
       
+      {isRegistered && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-3 rounded-lg text-sm text-center font-medium">
+          Pendaftaran akun berhasil! Silakan masuk dengan email dan password Anda.
+        </div>
+      )}
+
       {error && (
         <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center">
           {error}

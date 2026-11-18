@@ -17,6 +17,11 @@ export default async function MenuPage() {
   })
 
   const categories = await db.category.findMany({
+    where: {
+      name: {
+        not: 'Tambahan'
+      }
+    },
     orderBy: {
       name: 'asc'
     }

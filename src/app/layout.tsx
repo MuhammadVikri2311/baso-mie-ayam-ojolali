@@ -16,7 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id">
-      <body className="min-h-screen flex flex-col text-stone-800 antialiased selection:bg-orange-200 selection:text-orange-900">
+      <body className="min-h-screen flex flex-col font-sans text-stone-800 antialiased selection:bg-orange-200 selection:text-orange-900">
         <Providers>
           <Navbar />
           <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">

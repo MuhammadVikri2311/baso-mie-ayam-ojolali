@@ -1,40 +1,139 @@
 'use client'
 
 import Link from 'next/link'
-import { useSession, signOut } from 'next-auth/react'
-import { ShoppingCart, User, Menu, LogOut, LayoutDashboard, Utensils } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { ShoppingCart, Menu, Utensils, User, LogOut, LayoutDashboard } from 'lucide-react'
 import { useState } from 'react'
 import { useCartStore } from '@/lib/store'
+import { useSession } from 'next-auth/react'
+import NavbarOrderNotification from './notifications/NavbarOrderNotification'
+import { logoutAction } from '@/lib/authActions'
 
 export default function Navbar() {
+  const pathname = usePathname()
   const { data: session } = useSession()
   const [isOpen, setIsOpen] = useState(false)
   const cartItems = useCartStore((state) => state.items)
   const totalItems = cartItems.reduce((acc, item) => acc + item.quantity, 0)
 
+  // Cek apakah sedang berada di panel staff (admin atau kasir)
+  const isAdmin = pathname?.startsWith('/admin')
+  const isKasir = pathname?.startsWith('/kasir')
+  const isStaffRoute = Boolean(isAdmin || isKasir)
+
   const toggleMenu = () => setIsOpen(!isOpen)
+
+  const brandHref = isAdmin ? '/admin' : isKasir ? '/kasir' : '/'
+
+  const handleLogout = async () => {
+    const portal: 'admin' | 'kasir' | 'pelanggan' = isAdmin
+      ? 'admin'
+      : isKasir
+      ? 'kasir'
+      : session?.user?.role === 'ADMIN'
+      ? 'admin'
+      : session?.user?.role === 'KASIR'
+      ? 'kasir'
+      : 'pelanggan'
+
+    const res = await logoutAction(portal)
+    window.location.href = res.redirectTo || '/login'
+  }
 
   return (
     <nav className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-stone-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link href="/" className="flex-shrink-0 flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <Link href={brandHref} className="flex-shrink-0 flex items-center gap-2">
               <Utensils className="h-8 w-8 text-orange-600" />
               <span className="font-bold text-xl text-gray-900 hidden sm:block">UMKM Ojolali</span>
             </Link>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <Link href="/" className="border-transparent text-gray-500 hover:border-orange-500 hover:text-orange-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                Home
+
+            {/* Badge Identitas Panel Staff */}
+            {isAdmin && (
+              <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700 border border-orange-200">
+                Dashboard Admin
+              </span>
+            )}
+            {isKasir && (
+              <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                Dashboard Kasir
+              </span>
+            )}
+
+            {isStaffRoute && (
+              <Link
+                href="/menu"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold text-stone-700 bg-stone-100 hover:bg-orange-50 hover:text-orange-600 border border-stone-200 transition"
+              >
+                <Utensils className="w-3.5 h-3.5 text-orange-600" />
+                <span>Lihat Menu Pelanggan</span>
               </Link>
-              <Link href="/menu" className="border-transparent text-gray-500 hover:border-orange-500 hover:text-orange-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                Menu
-              </Link>
-            </div>
+            )}
+
+            {/* Menu Navigasi Utama Publik */}
+            {!isStaffRoute && (
+              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+                <Link
+                  href="/"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${
+                    pathname === '/'
+                      ? 'border-orange-500 text-orange-600 font-bold'
+                      : 'border-transparent text-gray-500 hover:border-orange-500 hover:text-orange-700'
+                  }`}
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/menu"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${
+                    pathname === '/menu'
+                      ? 'border-orange-500 text-orange-600 font-bold'
+                      : 'border-transparent text-gray-500 hover:border-orange-500 hover:text-orange-700'
+                  }`}
+                >
+                  Menu
+                </Link>
+
+                {/* Tautan Cepat Staf jika sedang berada di halaman publik */}
+                {session?.user?.role === 'ADMIN' && (
+                  <Link
+                    href="/admin"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 my-auto rounded-lg text-xs font-bold bg-orange-100 text-orange-800 hover:bg-orange-200 transition"
+                  >
+                    <LayoutDashboard className="w-3.5 h-3.5" />
+                    <span>Kembali ke Dashboard Admin</span>
+                  </Link>
+                )}
+                {session?.user?.role === 'KASIR' && (
+                  <Link
+                    href="/kasir"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 my-auto rounded-lg text-xs font-bold bg-amber-100 text-amber-800 hover:bg-amber-200 transition"
+                  >
+                    <LayoutDashboard className="w-3.5 h-3.5" />
+                    <span>Kembali ke Dashboard Kasir</span>
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* Area Kanan Atas: Keranjang Pelanggan, Notifikasi Staff, Profil Pengguna, dan Tombol Logout */}
           <div className="hidden sm:ml-6 sm:flex sm:items-center sm:space-x-4">
-            {session?.user?.role === 'PELANGGAN' || !session ? (
-              <Link href="/keranjang" className="relative p-2 text-stone-500 hover:text-orange-600 transition-colors">
+            {/* Notifikasi Pesanan Baru untuk Admin dan Kasir */}
+            {isStaffRoute && (
+              <NavbarOrderNotification role={isAdmin ? 'admin' : 'kasir'} />
+            )}
+
+            {/* Keranjang belanja hanya ditampilkan di halaman publik pelanggan */}
+            {!isStaffRoute && (
+              <Link
+                href="/keranjang"
+                className={`relative p-2 transition-colors ${
+                  pathname === '/keranjang' ? 'text-orange-600' : 'text-stone-500 hover:text-orange-600'
+                }`}
+              >
                 <span className="sr-only">Keranjang</span>
                 <ShoppingCart className="h-6 w-6" />
                 {totalItems > 0 && (
@@ -43,125 +142,183 @@ export default function Navbar() {
                   </span>
                 )}
               </Link>
-            ) : null}
+            )}
 
-            {session ? (
-              <div className="flex items-center space-x-4">
-                {session.user.role === 'ADMIN' && (
-                  <Link href="/admin" className="text-gray-500 hover:text-gray-700 flex items-center gap-1 text-sm font-medium">
-                    <LayoutDashboard className="h-4 w-4" />
-                    Dashboard Admin
-                  </Link>
-                )}
-                {session.user.role === 'KASIR' && (
-                  <Link href="/kasir" className="text-gray-500 hover:text-gray-700 flex items-center gap-1 text-sm font-medium">
-                    <LayoutDashboard className="h-4 w-4" />
-                    Dashboard Kasir
-                  </Link>
-                )}
-                <div className="flex items-center gap-2 group relative">
-                  <User className="h-6 w-6 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">{session.user.name}</span>
-                  <div className="absolute right-0 w-48 mt-2 py-2 bg-white rounded-md shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 top-full">
-                    {session.user.role === 'PELANGGAN' && (
-                      <>
-                        <Link href="/profil" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profil</Link>
-                        <Link href="/pesanan" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Pesanan Saya</Link>
-                        <Link href="/riwayat" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Riwayat</Link>
-                      </>
-                    )}
-                    <button
-                      onClick={() => signOut({ callbackUrl: '/' })}
-                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center gap-2"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Logout
-                    </button>
-                  </div>
-                </div>
+            {/* Kontrol Akun Pengguna & Tombol Logout Kanan Atas */}
+            {session?.user ? (
+              <div className="flex items-center gap-3 pl-3 border-l border-stone-200">
+                <Link
+                  href={session.user.role === 'PELANGGAN' ? '/profil' : isStaffRoute ? pathname : (session.user.role === 'ADMIN' ? '/admin' : '/kasir')}
+                  className="text-right hidden md:block hover:opacity-80 transition cursor-pointer"
+                >
+                  <p className="text-xs font-bold text-stone-800 leading-tight">
+                    {session.user.name || 'Pengguna'}
+                  </p>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 uppercase tracking-wide">
+                    {session.user.role}
+                  </span>
+                </Link>
+
+                {/* Tombol Logout Konsisten di Kanan Atas Panel */}
+                <button
+                  onClick={handleLogout}
+                  title="Keluar / Logout"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 transition shadow-2xs cursor-pointer active:scale-95"
+                  aria-label="Logout"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Logout</span>
+                </button>
               </div>
             ) : (
-              <div className="flex items-center space-x-4">
-                <Link href="/login" className="text-gray-500 hover:text-gray-700 text-sm font-medium">
-                  Login
-                </Link>
-                <Link href="/register" className="bg-orange-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-orange-700 transition">
-                  Daftar
-                </Link>
-              </div>
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-xl transition"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Masuk</span>
+              </Link>
             )}
           </div>
-          <div className="-mr-2 flex items-center sm:hidden">
-            {session?.user?.role === 'PELANGGAN' || !session ? (
-              <Link href="/keranjang" className="relative p-2 mr-2 text-stone-500 hover:text-orange-600 transition-colors">
-                <ShoppingCart className="h-6 w-6" />
-                {totalItems > 0 && (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-orange-600 rounded-full animate-pulse shadow-sm">
-                    {totalItems}
-                  </span>
+
+          {/* Kontrol Mobile */}
+          <div className="-mr-2 flex items-center gap-2 sm:hidden">
+            {!isStaffRoute ? (
+              <>
+                <Link
+                  href="/keranjang"
+                  className={`relative p-2 mr-1 transition-colors ${
+                    pathname === '/keranjang' ? 'text-orange-600' : 'text-stone-500 hover:text-orange-600'
+                  }`}
+                >
+                  <ShoppingCart className="h-6 w-6" />
+                  {totalItems > 0 && (
+                    <span className="absolute top-0 right-0 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-orange-600 rounded-full animate-pulse shadow-sm">
+                      {totalItems}
+                    </span>
+                  )}
+                </Link>
+                <button
+                  onClick={toggleMenu}
+                  className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-orange-500"
+                >
+                  <Menu className="h-6 w-6" />
+                </button>
+              </>
+            ) : (
+              /* Pada panel admin & kasir di mobile: notifikasi dan tombol logout */
+              <div className="flex items-center gap-2">
+                <NavbarOrderNotification role={isAdmin ? 'admin' : 'kasir'} />
+                {session?.user && (
+                  <button
+                    onClick={handleLogout}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition cursor-pointer"
+                    title="Keluar / Logout"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Logout</span>
+                  </button>
                 )}
-              </Link>
-            ) : null}
-            <button
-              onClick={toggleMenu}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-orange-500"
-            >
-              <Menu className="h-6 w-6" />
-            </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Mobile menu */}
-      {isOpen && (
+      {/* Mobile menu publik */}
+      {!isStaffRoute && isOpen && (
         <div className="sm:hidden bg-white/95 backdrop-blur-md border-t border-stone-200">
           <div className="pt-2 pb-3 space-y-1">
-            <Link href="/" className="block pl-3 pr-4 py-3 border-l-4 border-transparent text-base font-medium text-stone-600 hover:bg-orange-50 hover:border-orange-500 hover:text-orange-700 transition-colors">Home</Link>
-            <Link href="/menu" className="block pl-3 pr-4 py-3 border-l-4 border-transparent text-base font-medium text-stone-600 hover:bg-orange-50 hover:border-orange-500 hover:text-orange-700 transition-colors">Menu</Link>
-          </div>
-          <div className="pt-4 pb-3 border-t border-gray-200">
-            {session ? (
+            <Link
+              href="/"
+              onClick={() => setIsOpen(false)}
+              className={`block pl-3 pr-4 py-3 border-l-4 text-base font-medium transition-colors ${
+                pathname === '/'
+                  ? 'border-orange-500 text-orange-700 bg-orange-50 font-bold'
+                  : 'border-transparent text-stone-600 hover:bg-orange-50 hover:border-orange-500 hover:text-orange-700'
+              }`}
+            >
+              Home
+            </Link>
+            <Link
+              href="/menu"
+              onClick={() => setIsOpen(false)}
+              className={`block pl-3 pr-4 py-3 border-l-4 text-base font-medium transition-colors ${
+                pathname === '/menu'
+                  ? 'border-orange-500 text-orange-700 bg-orange-50 font-bold'
+                  : 'border-transparent text-stone-600 hover:bg-orange-50 hover:border-orange-500 hover:text-orange-700'
+              }`}
+            >
+              Menu
+            </Link>
+
+            {/* Mobile Nav Khusus Pelanggan */}
+            {session?.user?.role === 'PELANGGAN' && (
               <>
-                <div className="flex items-center px-4 mb-2">
-                  <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-lg">
-                      {session.user.name?.[0]?.toUpperCase()}
-                    </div>
+                <Link
+                  href="/profil"
+                  onClick={() => setIsOpen(false)}
+                  className={`block pl-3 pr-4 py-3 border-l-4 text-base font-medium transition-colors ${
+                    pathname === '/profil'
+                      ? 'border-orange-500 text-orange-700 bg-orange-50 font-bold'
+                      : 'border-transparent text-stone-600 hover:bg-orange-50 hover:border-orange-500 hover:text-orange-700'
+                  }`}
+                >
+                  Profil Saya
+                </Link>
+              </>
+            )}
+
+            {/* Mobile Nav Staf jika membuka halaman publik */}
+            {session?.user?.role === 'ADMIN' && (
+              <Link
+                href="/admin"
+                onClick={() => setIsOpen(false)}
+                className="block pl-3 pr-4 py-3 text-base font-bold text-orange-700 bg-orange-50 border-l-4 border-orange-500"
+              >
+                Ke Dashboard Admin
+              </Link>
+            )}
+            {session?.user?.role === 'KASIR' && (
+              <Link
+                href="/kasir"
+                onClick={() => setIsOpen(false)}
+                className="block pl-3 pr-4 py-3 text-base font-bold text-amber-800 bg-amber-50 border-l-4 border-amber-500"
+              >
+                Ke Dashboard Kasir
+              </Link>
+            )}
+
+            {/* Mobile Auth status & Tombol Logout */}
+            {session?.user ? (
+              <div className="pt-3 pb-2 border-t border-stone-200 px-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-stone-900">{session.user.name}</p>
+                    <p className="text-xs text-stone-500">{session.user.email}</p>
                   </div>
-                  <div className="ml-3">
-                    <div className="text-base font-medium text-gray-800">{session.user.name}</div>
-                    <div className="text-sm font-medium text-gray-500">{session.user.email}</div>
-                  </div>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded bg-orange-100 text-orange-700 uppercase">
+                    {session.user.role}
+                  </span>
                 </div>
-                <div className="mt-3 space-y-1">
-                  {session.user.role === 'ADMIN' && (
-                    <Link href="/admin" className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">Dashboard Admin</Link>
-                  )}
-                  {session.user.role === 'KASIR' && (
-                    <Link href="/kasir" className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">Dashboard Kasir</Link>
-                  )}
-                  {session.user.role === 'PELANGGAN' && (
-                    <>
-                      <Link href="/profil" className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">Profil</Link>
-                      <Link href="/pesanan" className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">Pesanan Saya</Link>
-                      <Link href="/riwayat" className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100">Riwayat</Link>
-                    </>
-                  )}
+                <div className="flex justify-end pt-1">
                   <button
-                    onClick={() => signOut({ callbackUrl: '/' })}
-                    className="block w-full text-left px-4 py-2 text-base font-medium text-red-600 hover:text-red-800 hover:bg-gray-100"
+                    onClick={handleLogout}
+                    className="text-xs text-red-600 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer"
                   >
-                    Logout
+                    <LogOut className="w-3.5 h-3.5" />
+                    Keluar / Logout
                   </button>
                 </div>
-              </>
+              </div>
             ) : (
-              <div className="mt-3 space-y-1 flex flex-col px-4 gap-2">
-                <Link href="/login" className="block w-full text-center px-4 py-2 border border-gray-300 shadow-sm text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                  Login
-                </Link>
-                <Link href="/register" className="block w-full text-center px-4 py-2 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700">
-                  Daftar
+              <div className="pt-3 pb-2 border-t border-stone-200 px-4">
+                <Link
+                  href="/login"
+                  onClick={() => setIsOpen(false)}
+                  className="block text-center py-2.5 bg-orange-600 text-white rounded-xl text-sm font-bold hover:bg-orange-700 transition"
+                >
+                  Masuk ke Akun
                 </Link>
               </div>
             )}

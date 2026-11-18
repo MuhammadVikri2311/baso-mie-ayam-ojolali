@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { registerUser } from './actions'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -10,6 +11,19 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const { data: session, status } = useSession()
+
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      if (session.user.role === 'ADMIN') {
+        router.replace('/admin')
+      } else if (session.user.role === 'KASIR') {
+        router.replace('/kasir')
+      } else {
+        router.replace('/')
+      }
+    }
+  }, [status, session, router])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()

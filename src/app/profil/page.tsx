@@ -1,16 +1,31 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { updateProfile } from './actions'
 import { User, Mail, ShieldCheck, Loader2, CheckCircle2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function ProfilPage() {
-  const { data: session, update } = useSession()
+  const { data: session, status, update } = useSession()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{type: 'success'|'error', text: string} | null>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/login?callbackUrl=/profil')
+    }
+  }, [status, router])
+
+  if (status === 'loading') {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-stone-500">
+        <Loader2 className="w-8 h-8 animate-spin mb-3 text-orange-600" />
+        <p className="text-sm font-medium">Memuat profil...</p>
+      </div>
+    )
+  }
 
   if (!session?.user) return null
 
